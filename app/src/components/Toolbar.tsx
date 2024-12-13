@@ -1,17 +1,45 @@
-import { EraserIcon, PencilIcon, SquareIcon } from "lucide-react";
+"use client";
+
+import { Tool, useCanvasStore } from "@/lib/store/canvas";
+import { EraserIcon, PencilIcon, SquareIcon, TypeIcon } from "lucide-react";
+
+const tools = [
+  {
+    icon: PencilIcon,
+    tool: Tool.freeHand,
+  },
+  {
+    icon: SquareIcon,
+    tool: Tool.rect,
+  },
+  {
+    icon: TypeIcon,
+    tool: Tool.text,
+  },
+  {
+    icon: EraserIcon,
+    tool: Tool.eraser,
+  },
+];
 
 const Toolbar = () => {
+  const { setTool, tool } = useCanvasStore();
+
   return (
-    <div className="fixed px-4 py-2 top-4 w-max h-max inset-0 mx-auto rounded-full shadow-md border flex gap-2">
-      <button className="p-2 hover:bg-primary/20 text-black rounded-full">
-        <PencilIcon className="size-5" />
-      </button>
-      <button className="p-2 hover:bg-primary/20 text-black rounded-full">
-        <EraserIcon className="size-5" />
-      </button>
-      <button className="p-2 hover:bg-primary/20 text-black rounded-full">
-        <SquareIcon className="size-5" />
-      </button>
+    <div className="z-50 fixed px-4 py-2 top-4 w-max h-max inset-0 mx-auto rounded-full shadow-md border flex gap-2 bg-white">
+      {tools.map((t) => {
+        return (
+          <button
+            key={t.tool}
+            onClick={() => setTool(t.tool)}
+            className={`p-2 ${tool !== t.tool && "hover:bg-primary/20"} ${
+              tool === t.tool && "bg-primary text-white"
+            }  text-black rounded-full`}
+          >
+            <t.icon className="size-5" />
+          </button>
+        );
+      })}
     </div>
   );
 };
