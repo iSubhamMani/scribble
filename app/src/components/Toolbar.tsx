@@ -1,7 +1,13 @@
 "use client";
 
 import { Tool, useCanvasStore } from "@/lib/store/canvas";
-import { EraserIcon, PencilIcon, SquareIcon, TypeIcon } from "lucide-react";
+import {
+  CircleIcon,
+  EraserIcon,
+  PencilIcon,
+  SquareIcon,
+  TypeIcon,
+} from "lucide-react";
 
 const tools = [
   {
@@ -11,6 +17,10 @@ const tools = [
   {
     icon: SquareIcon,
     tool: Tool.rect,
+  },
+  {
+    icon: CircleIcon,
+    tool: Tool.circle,
   },
   {
     icon: TypeIcon,
