@@ -3,12 +3,9 @@
 import { Tool, useCanvasStore } from "@/lib/store/canvas";
 import React, { useState, useRef, useEffect } from "react";
 import useFreeHandDraw from "./tools/FreeHandDraw";
-
-// Type definitions
-interface Point {
-  x: number;
-  y: number;
-}
+import { Point } from "@/types/Point";
+import useRectangle from "./tools/Rectangle";
+import useCircle from "./tools/Circle";
 
 const Canvas: React.FC = () => {
   const {
@@ -44,10 +41,28 @@ const Canvas: React.FC = () => {
   };
 
   // tools
-  const { draw, onMouseDown, onMouseMove } = useFreeHandDraw(
+  const {
+    draw: drawFreeHand,
+    onMouseDown: onMouseDownFreeHand,
+    onMouseMove: onMouseMoveFreeHand,
+  } = useFreeHandDraw(canvasRef.current, getCanvasCoordinates);
+
+  const {
+    draw: drawRect,
+    onMouseDown: onMouseDownRect,
+    onMouseMove: onMouseMoveRect,
+  } = useRectangle(canvasRef.current, getCanvasCoordinates);
+
+  const {
+    draw: drawCircle,
+    onMouseDown: onMouseDownCircle,
+    onMouseMove: onMouseMoveCircle,
+  } = useCircle(canvasRef.current, getCanvasCoordinates);
+
+  /*const { draw: drawText, onMouseDown: onMouseDownText } = useText(
     canvasRef.current,
     getCanvasCoordinates
-  );
+  );*/
 
   // Drawing function
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -60,7 +75,16 @@ const Canvas: React.FC = () => {
       // Drawing
       switch (tool) {
         case Tool.freeHand:
-          onMouseDown(e);
+          onMouseDownFreeHand(e);
+          break;
+        case Tool.rect:
+          onMouseDownRect(e);
+          break;
+        case Tool.circle:
+          onMouseDownCircle(e);
+          break;
+        case Tool.text:
+          //onMouseDownText(e);
           break;
         default:
           break;
@@ -84,7 +108,13 @@ const Canvas: React.FC = () => {
       // Drawing logic
       switch (tool) {
         case Tool.freeHand:
-          onMouseMove(e);
+          onMouseMoveFreeHand(e);
+          break;
+        case Tool.rect:
+          onMouseMoveRect(e);
+          break;
+        case Tool.circle:
+          onMouseMoveCircle(e);
           break;
         default:
           break;
@@ -120,7 +150,6 @@ const Canvas: React.FC = () => {
     setScale(newScale);
   };
 
-  // Rendering lines
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -136,14 +165,18 @@ const Canvas: React.FC = () => {
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
 
-    // Draw all lines
-    draw();
+    // Draw all
+    drawFreeHand();
+    drawRect();
+    drawCircle();
+    //drawText();
 
     ctx.restore();
-  }, [scale, offset, draw]);
+  }, [scale, offset, drawFreeHand, drawRect, drawCircle]);
 
   return (
     <div
+      id="canvas-container"
       ref={containerRef}
       className="relative w-full h-screen overflow-hidden bg-gray-100"
       onWheel={handleWheel}
