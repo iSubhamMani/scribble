@@ -1,21 +1,15 @@
 "use client";
 
-import { useCanvasStore } from "@/lib/store/canvas";
+import { Tool, useCanvasStore } from "@/lib/store/canvas";
+import { useToolsStore } from "@/lib/store/tools";
 import { Point } from "@/types/Point";
-import { useState } from "react";
-
-interface Line {
-  points: Point[];
-  color?: string;
-  strokeWidth?: number;
-}
 
 const useFreeHandDraw = (
   canvas: HTMLCanvasElement | null,
   getCanvasCoordinates: (x: number, y: number) => Point | null
 ) => {
-  const [lines, setLines] = useState<Line[]>([]);
-  const { setIsDrawing, scale } = useCanvasStore();
+  const { lines, setLines } = useToolsStore();
+  const { setIsDrawing, scale, setToolsUsed } = useCanvasStore();
 
   const onMouseDown = (e: React.MouseEvent) => {
     const coords = getCanvasCoordinates(e.clientX, e.clientY);
@@ -29,6 +23,7 @@ const useFreeHandDraw = (
           strokeWidth: 2,
         },
       ]);
+      setToolsUsed((current) => [...current, Tool.freeHand]);
     }
   };
 

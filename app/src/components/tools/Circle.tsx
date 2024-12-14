@@ -1,22 +1,15 @@
 "use client";
 
-import { useCanvasStore } from "@/lib/store/canvas";
+import { Tool, useCanvasStore } from "@/lib/store/canvas";
+import { useToolsStore } from "@/lib/store/tools";
 import { Point } from "@/types/Point";
-import { useState } from "react";
-
-interface Circle {
-  start: Point;
-  end: Point;
-  color?: string;
-  strokeWidth?: number;
-}
 
 const useCircle = (
   canvas: HTMLCanvasElement | null,
   getCanvasCoordinates: (x: number, y: number) => Point | null
 ) => {
-  const [circles, setCircles] = useState<Circle[]>([]);
-  const { setIsDrawing, scale } = useCanvasStore();
+  const { circles, setCircles } = useToolsStore();
+  const { setIsDrawing, scale, setToolsUsed } = useCanvasStore();
 
   const onMouseDown = (e: React.MouseEvent) => {
     const coords = getCanvasCoordinates(e.clientX, e.clientY);
@@ -31,6 +24,7 @@ const useCircle = (
           strokeWidth: 2,
         },
       ]);
+      setToolsUsed((current) => [...current, Tool.circle]);
     }
   };
 

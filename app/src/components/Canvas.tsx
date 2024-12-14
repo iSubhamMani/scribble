@@ -6,6 +6,14 @@ import useFreeHandDraw from "./tools/FreeHandDraw";
 import { Point } from "@/types/Point";
 import useRectangle from "./tools/Rectangle";
 import useCircle from "./tools/Circle";
+import useLine from "./tools/Line";
+import {
+  Circle,
+  Line,
+  Rectangle,
+  StraightLine,
+  useToolsStore,
+} from "@/lib/store/tools";
 
 const Canvas: React.FC = () => {
   const {
@@ -18,7 +26,12 @@ const Canvas: React.FC = () => {
     setLastPosition,
     setScale,
     tool,
+    toolsUsed,
+    setToolsUsed,
+    toolsRemoved,
+    setToolsRemoved,
   } = useCanvasStore();
+  const { setCircles, setLines, setRects, setStraightLines } = useToolsStore();
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
 
   // Refs for canvas and container
@@ -59,6 +72,12 @@ const Canvas: React.FC = () => {
     onMouseMove: onMouseMoveCircle,
   } = useCircle(canvasRef.current, getCanvasCoordinates);
 
+  const {
+    draw: drawLine,
+    onMouseDown: onMouseDownLine,
+    onMouseMove: onMouseMoveLine,
+  } = useLine(canvasRef.current, getCanvasCoordinates);
+
   /*const { draw: drawText, onMouseDown: onMouseDownText } = useText(
     canvasRef.current,
     getCanvasCoordinates
@@ -82,6 +101,9 @@ const Canvas: React.FC = () => {
           break;
         case Tool.circle:
           onMouseDownCircle(e);
+          break;
+        case Tool.line:
+          onMouseDownLine(e);
           break;
         case Tool.text:
           //onMouseDownText(e);
@@ -116,6 +138,9 @@ const Canvas: React.FC = () => {
         case Tool.circle:
           onMouseMoveCircle(e);
           break;
+        case Tool.line:
+          onMouseMoveLine(e);
+          break;
         default:
           break;
       }
@@ -125,6 +150,88 @@ const Canvas: React.FC = () => {
   const handleMouseUp = () => {
     setIsDrawing(false);
     setIsPanning(false);
+  };
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.ctrlKey && e.key === "z") {
+      const lastTool = toolsUsed[toolsUsed.length - 1];
+      if (!lastTool) return;
+      setToolsUsed((current) => current.slice(0, -1));
+
+      let lastValue = {};
+
+      // remove the last drawn shape
+      switch (lastTool) {
+        case Tool.freeHand:
+          setLines((current) => {
+            lastValue = current[current.length - 1];
+            return current.slice(0, -1);
+          });
+          break;
+        case Tool.rect:
+          setRects((current) => {
+            lastValue = current[current.length - 1];
+            return current.slice(0, -1);
+          });
+          break;
+        case Tool.circle:
+          setCircles((current) => {
+            lastValue = current[current.length - 1];
+            return current.slice(0, -1);
+          });
+          break;
+        case Tool.line:
+          setStraightLines((current) => {
+            lastValue = current[current.length - 1];
+            return current.slice(0, -1);
+          });
+          break;
+        case Tool.text:
+          break;
+        default:
+          break;
+      }
+
+      setToolsRemoved((current) => [
+        ...current,
+        { tool: lastTool, value: lastValue },
+      ]);
+    }
+
+    if (e.ctrlKey && e.key === "y") {
+      const lastRemovedTool = toolsRemoved[toolsRemoved.length - 1];
+      if (!lastRemovedTool) return;
+      setToolsRemoved((current) => current.slice(0, -1));
+      setToolsUsed((current) => [...current, lastRemovedTool.tool]);
+
+      switch (lastRemovedTool.tool) {
+        case Tool.freeHand:
+          setLines((current) => [...current, lastRemovedTool.value as Line]);
+          break;
+        case Tool.rect:
+          setRects((current) => [
+            ...current,
+            lastRemovedTool.value as Rectangle,
+          ]);
+          break;
+        case Tool.circle:
+          setCircles((current) => [
+            ...current,
+            lastRemovedTool.value as Circle,
+          ]);
+          break;
+        case Tool.line:
+          setStraightLines((current) => [
+            ...current,
+            lastRemovedTool.value as StraightLine,
+          ]);
+          break;
+        case Tool.text:
+          break;
+        default:
+          break;
+      }
+    }
   };
 
   // Zoom handling
@@ -169,21 +276,24 @@ const Canvas: React.FC = () => {
     drawFreeHand();
     drawRect();
     drawCircle();
+    drawLine();
     //drawText();
 
     ctx.restore();
-  }, [scale, offset, drawFreeHand, drawRect, drawCircle]);
+  }, [scale, offset, drawFreeHand, drawRect, drawCircle, drawLine]);
 
   return (
     <div
       id="canvas-container"
       ref={containerRef}
+      tabIndex={0}
       className="relative w-full h-screen overflow-hidden bg-gray-100"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onKeyDown={onKeyDown}
     >
       <canvas
         ref={canvasRef}
