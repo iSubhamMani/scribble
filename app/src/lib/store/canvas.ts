@@ -14,17 +14,28 @@ export enum Tool {
   circle = "CIRCLE",
 }
 
+interface ToolsRemoved {
+  tool: Tool;
+  value: object;
+}
+
 type Canvas = {
   scale: number;
   isPanning: boolean;
   isDrawing: boolean;
   lastPosition: Point;
   tool: Tool;
+  toolsUsed: Tool[];
+  toolsRemoved: ToolsRemoved[];
   setScale: (scale: number) => void;
   setIsPanning: (isPanning: boolean) => void;
   setIsDrawing: (isDrawing: boolean) => void;
   setLastPosition: (lastPosition: Point) => void;
   setTool: (tool: Tool) => void;
+  setToolsUsed: (updater: (prevRects: Tool[]) => Tool[]) => void;
+  setToolsRemoved: (
+    updater: (prevRects: ToolsRemoved[]) => ToolsRemoved[]
+  ) => void;
 };
 
 export const useCanvasStore = create<Canvas>()((set) => ({
@@ -33,9 +44,17 @@ export const useCanvasStore = create<Canvas>()((set) => ({
   isDrawing: false,
   lastPosition: { x: 0, y: 0 },
   tool: Tool.freeHand,
+  toolsUsed: [],
+  toolsRemoved: [],
   setScale: (scale) => set({ scale }),
   setIsPanning: (isPanning) => set({ isPanning }),
   setIsDrawing: (isDrawing) => set({ isDrawing }),
   setLastPosition: (lastPosition) => set({ lastPosition }),
   setTool: (tool) => set({ tool }),
+  setToolsUsed: (updater) =>
+    set((state) => ({
+      toolsUsed: updater(state.toolsUsed),
+    })),
+  setToolsRemoved: (updater) =>
+    set((state) => ({ toolsRemoved: updater(state.toolsRemoved) })),
 }));
