@@ -1,12 +1,8 @@
 "use client";
 
 import { useCanvasStore } from "@/lib/store/canvas";
+import { Point } from "@/types/Point";
 import { useState } from "react";
-
-interface Point {
-  x: number;
-  y: number;
-}
 
 interface Line {
   points: Point[];
