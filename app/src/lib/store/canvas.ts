@@ -11,6 +11,7 @@ export enum Tool {
   line = "LINE",
   text = "TEXT",
   rect = "RECTANGLE",
+  circle = "CIRCLE",
 }
 
 type Canvas = {
