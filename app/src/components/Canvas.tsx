@@ -14,6 +14,7 @@ import {
   StraightLine,
   useToolsStore,
 } from "@/lib/store/tools";
+import useMoveTool from "./tools/MoveTool";
 
 const Canvas: React.FC = () => {
   const {
@@ -54,6 +55,9 @@ const Canvas: React.FC = () => {
   };
 
   // tools
+  const { onMouseMove: onMouseMoveTool, onMouseDown: onMouseDownMove } =
+    useMoveTool(getCanvasCoordinates);
+
   const {
     draw: drawFreeHand,
     onMouseDown: onMouseDownFreeHand,
@@ -93,6 +97,9 @@ const Canvas: React.FC = () => {
     } else {
       // Drawing
       switch (tool) {
+        case Tool.move:
+          onMouseDownMove(e);
+          break;
         case Tool.freeHand:
           onMouseDownFreeHand(e);
           break;
@@ -129,6 +136,9 @@ const Canvas: React.FC = () => {
     } else if (isDrawing) {
       // Drawing logic
       switch (tool) {
+        case Tool.move:
+          onMouseMoveTool(e);
+          break;
         case Tool.freeHand:
           onMouseMoveFreeHand(e);
           break;
@@ -236,7 +246,6 @@ const Canvas: React.FC = () => {
 
   // Zoom handling
   const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
     const delta = e.deltaY * -0.002;
     const newScale = Math.min(Math.max(0.1, scale + delta), 5);
 

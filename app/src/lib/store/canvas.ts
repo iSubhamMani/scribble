@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { Circle, Line, Rectangle, StraightLine } from "./tools";
 
 interface Point {
   x: number;
@@ -6,6 +7,7 @@ interface Point {
 }
 
 export enum Tool {
+  move = "MOVE",
   freeHand = "FREE_HAND",
   eraser = "ERASER",
   line = "LINE",
@@ -19,6 +21,11 @@ interface ToolsRemoved {
   value: object;
 }
 
+interface SelectedShape {
+  data: Line | Circle | Rectangle | StraightLine;
+  type: Tool;
+}
+
 type Canvas = {
   scale: number;
   isPanning: boolean;
@@ -27,6 +34,7 @@ type Canvas = {
   tool: Tool;
   toolsUsed: Tool[];
   toolsRemoved: ToolsRemoved[];
+  selectedShape: SelectedShape | null;
   setScale: (scale: number) => void;
   setIsPanning: (isPanning: boolean) => void;
   setIsDrawing: (isDrawing: boolean) => void;
@@ -36,6 +44,7 @@ type Canvas = {
   setToolsRemoved: (
     updater: (prevRects: ToolsRemoved[]) => ToolsRemoved[]
   ) => void;
+  setSelectedShape: (shape: SelectedShape | null) => void;
 };
 
 export const useCanvasStore = create<Canvas>()((set) => ({
@@ -43,9 +52,10 @@ export const useCanvasStore = create<Canvas>()((set) => ({
   isPanning: false,
   isDrawing: false,
   lastPosition: { x: 0, y: 0 },
-  tool: Tool.freeHand,
+  tool: Tool.move,
   toolsUsed: [],
   toolsRemoved: [],
+  selectedShape: null,
   setScale: (scale) => set({ scale }),
   setIsPanning: (isPanning) => set({ isPanning }),
   setIsDrawing: (isDrawing) => set({ isDrawing }),
@@ -57,4 +67,5 @@ export const useCanvasStore = create<Canvas>()((set) => ({
     })),
   setToolsRemoved: (updater) =>
     set((state) => ({ toolsRemoved: updater(state.toolsRemoved) })),
+  setSelectedShape: (selectedShape) => set({ selectedShape }),
 }));

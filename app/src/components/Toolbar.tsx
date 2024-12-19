@@ -3,6 +3,7 @@
 import { Tool, useCanvasStore } from "@/lib/store/canvas";
 import {
   CircleIcon,
+  HandIcon,
   MinusIcon,
   PencilIcon,
   SquareIcon,
@@ -16,6 +17,11 @@ import {
 } from "@/components/ui/tooltip";
 
 const tools = [
+  {
+    icon: HandIcon,
+    tool: Tool.move,
+    name: "Move",
+  },
   {
     icon: PencilIcon,
     tool: Tool.freeHand,
