@@ -1,14 +1,20 @@
 import { Tool, useCanvasStore } from "@/lib/store/canvas";
-import { Circle, Rectangle, useToolsStore } from "@/lib/store/tools";
+import {
+  Circle,
+  Rectangle,
+  StraightLine,
+  useToolsStore,
+} from "@/lib/store/tools";
 import { Point } from "@/types/Point";
 import React, { useState } from "react";
 
 const useMoveTool = (
+  canvas: HTMLCanvasElement | null,
   getCanvasCoordinates: (x: number, y: number) => Point | null
 ) => {
   const [mouseDownCoords, setMouseDownCoords] = useState<Point | null>(null);
 
-  const { rects, circles } = useToolsStore();
+  const { rects, circles, straightLines } = useToolsStore();
   const { selectedShape, setIsDrawing, setSelectedShape } = useCanvasStore();
   const boundary = 10;
 
@@ -68,6 +74,31 @@ const useMoveTool = (
         }
       }
 
+      for (const straightLine of straightLines) {
+        const distance =
+          Math.abs(
+            (straightLine.end.y - straightLine.start.y) * coords.x -
+              (straightLine.end.x - straightLine.start.x) * coords.y +
+              straightLine.end.x * straightLine.start.y -
+              straightLine.end.y * straightLine.start.x
+          ) /
+          Math.sqrt(
+            Math.pow(straightLine.end.y - straightLine.start.y, 2) +
+              Math.pow(straightLine.end.x - straightLine.start.x, 2)
+          );
+
+        if (distance <= boundary) {
+          const distanceToCentre = Math.sqrt(
+            Math.pow(coords.x - straightLine.start.x, 2) +
+              Math.pow(coords.y - straightLine.start.y, 2)
+          );
+          if (distanceToCentre < minDist) {
+            minDist = distanceToCentre;
+            closestFigure = { data: straightLine, type: Tool.line };
+          }
+        }
+      }
+
       if (closestFigure) {
         setIsDrawing(true);
         setMouseDownCoords(coords);
@@ -107,6 +138,16 @@ const useMoveTool = (
           updatedCircle.start.y += dy;
           updatedCircle.end.x += dx;
           updatedCircle.end.y += dy;
+          break;
+        case Tool.line:
+          const straightLine = data as StraightLine;
+          const updatedLine = straightLines.find((l) => l === straightLine);
+          if (!updatedLine) return;
+
+          updatedLine.start.x += dx;
+          updatedLine.start.y += dy;
+          updatedLine.end.x += dx;
+          updatedLine.end.y += dy;
           break;
       }
 
