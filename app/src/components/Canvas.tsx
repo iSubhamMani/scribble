@@ -15,6 +15,7 @@ import {
   useToolsStore,
 } from "@/lib/store/tools";
 import useMoveTool from "./tools/MoveTool";
+import { ForwardIcon } from "lucide-react";
 
 const Canvas: React.FC = () => {
   const {
@@ -31,6 +32,7 @@ const Canvas: React.FC = () => {
     setToolsUsed,
     toolsRemoved,
     setToolsRemoved,
+    setTool,
   } = useCanvasStore();
   const { setCircles, setLines, setRects, setStraightLines } = useToolsStore();
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
@@ -55,8 +57,11 @@ const Canvas: React.FC = () => {
   };
 
   // tools
-  const { onMouseMove: onMouseMoveTool, onMouseDown: onMouseDownMove } =
-    useMoveTool(getCanvasCoordinates);
+  const {
+    onMouseMove: onMouseMoveTool,
+    onMouseDown: onMouseDownMove,
+    onMouseUp: onMouseUpMove,
+  } = useMoveTool(canvasRef.current, getCanvasCoordinates);
 
   const {
     draw: drawFreeHand,
@@ -160,9 +165,34 @@ const Canvas: React.FC = () => {
   const handleMouseUp = () => {
     setIsDrawing(false);
     setIsPanning(false);
+    onMouseUpMove();
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    // shortcuts
+
+    if (e.key === "v") {
+      setTool(Tool.move);
+    }
+
+    if (e.key === "f") {
+      setTool(Tool.freeHand);
+    }
+
+    if (e.key === "r") {
+      setTool(Tool.rect);
+    }
+
+    if (e.key === "c") {
+      setTool(Tool.circle);
+    }
+
+    if (e.key === "l") {
+      setTool(Tool.line);
+    }
+
+    // undo and redo
+
     if (e.ctrlKey && e.key === "z") {
       const lastTool = toolsUsed[toolsUsed.length - 1];
       if (!lastTool) return;
@@ -296,7 +326,7 @@ const Canvas: React.FC = () => {
       id="canvas-container"
       ref={containerRef}
       tabIndex={0}
-      className="relative w-full h-screen overflow-hidden bg-gray-100"
+      className="relative w-full h-screen overflow-hidden bg-zinc-900"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -310,11 +340,12 @@ const Canvas: React.FC = () => {
         height={2000}
         className="absolute top-0 left-0"
       />
-      <div className="absolute top-2 left-2 bg-white p-2 rounded shadow">
+      <div className="absolute top-4 left-4 bg-zinc-800 p-2 rounded shadow text-primary-foreground text-sm">
         Zoom: {(scale * 100).toFixed(0)}%
       </div>
-      <div className="absolute top-2 right-2 bg-white p-2 rounded shadow text-sm">
-        Hold Ctrl + Drag to Pan
+      <div className="flex items-center gap-2 absolute top-4 right-4 bg-primary px-4 py-2 rounded shadow text-base text-primary-foreground">
+        Share
+        <ForwardIcon className="size-5" />
       </div>
     </div>
   );
