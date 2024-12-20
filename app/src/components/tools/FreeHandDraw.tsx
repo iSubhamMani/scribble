@@ -19,7 +19,7 @@ const useFreeHandDraw = (
         ...current,
         {
           points: [coords],
-          color: "red",
+          color: "white",
           strokeWidth: 2,
         },
       ]);

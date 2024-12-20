@@ -20,7 +20,7 @@ const useLine = (
         {
           start: coords,
           end: coords,
-          color: "red",
+          color: "white",
           strokeWidth: 2,
         },
       ]);
