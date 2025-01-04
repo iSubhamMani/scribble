@@ -8,7 +8,11 @@ export async function middleware(req: NextRequest) {
 
   const currentUrl = req.nextUrl;
 
-  if (!token && currentUrl.pathname === "/dashboard") {
+  if (
+    !token &&
+    (currentUrl.pathname === "/dashboard" ||
+      currentUrl.pathname.startsWith("/whiteboard"))
+  ) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
@@ -18,5 +22,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/dashboard"],
+  matcher: ["/", "/dashboard", "/whiteboard"],
 };
