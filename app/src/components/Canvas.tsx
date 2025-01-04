@@ -16,8 +16,21 @@ import {
 } from "@/lib/store/tools";
 import useMoveTool from "./tools/MoveTool";
 import { ForwardIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { WebSocketMessage, WebSocketService } from "@/lib/ws/WebSocket";
+import { useUserStore } from "@/lib/store/user";
 
 const Canvas: React.FC = () => {
+  const { data: session } = useSession();
+  const [wss, setWss] = useState<WebSocketService | null>(null);
+  const { setUser } = useUserStore();
+
+  useEffect(() => {
+    if (session?.user) {
+      setUser(session.user);
+    }
+  }, [session]);
+
   const {
     isDrawing,
     isPanning,
@@ -34,7 +47,16 @@ const Canvas: React.FC = () => {
     setToolsRemoved,
     setTool,
   } = useCanvasStore();
-  const { setCircles, setLines, setRects, setStraightLines } = useToolsStore();
+  const {
+    rects,
+    circles,
+    lines,
+    straightLines,
+    setCircles,
+    setLines,
+    setRects,
+    setStraightLines,
+  } = useToolsStore();
   const [offset, setOffset] = useState<Point>({ x: 0, y: 0 });
 
   // Refs for canvas and container
@@ -61,7 +83,7 @@ const Canvas: React.FC = () => {
     onMouseMove: onMouseMoveTool,
     onMouseDown: onMouseDownMove,
     onMouseUp: onMouseUpMove,
-  } = useMoveTool(canvasRef.current, getCanvasCoordinates);
+  } = useMoveTool(wss, canvasRef.current, getCanvasCoordinates);
 
   const {
     draw: drawFreeHand,
@@ -163,6 +185,29 @@ const Canvas: React.FC = () => {
   };
 
   const handleMouseUp = () => {
+    if (isDrawing && wss) {
+      // Send the last drawn shape to other clients
+      let data;
+      switch (tool) {
+        case Tool.freeHand:
+          data = lines[lines.length - 1];
+          break;
+        case Tool.rect:
+          data = rects[rects.length - 1];
+          break;
+        case Tool.circle:
+          data = circles[circles.length - 1];
+          break;
+        case Tool.line:
+          data = straightLines[straightLines.length - 1];
+          break;
+      }
+
+      if (data) {
+        wss.sendDrawEvent(tool, data, data.id);
+      }
+    }
+
     setIsDrawing(false);
     setIsPanning(false);
     onMouseUpMove();
@@ -198,32 +243,49 @@ const Canvas: React.FC = () => {
       if (!lastTool) return;
       setToolsUsed((current) => current.slice(0, -1));
 
-      let lastValue = {};
+      let lastValue: Rectangle | Line | Circle | StraightLine = {
+        id: "",
+        drawnBy: "",
+        start: { x: 0, y: 0 },
+        end: { x: 0, y: 0 },
+      };
 
       // remove the last drawn shape
       switch (lastTool) {
         case Tool.freeHand:
           setLines((current) => {
-            lastValue = current[current.length - 1];
-            return current.slice(0, -1);
+            const drawnByCurrentUser = current.filter(
+              (c) => c.drawnBy === session?.user?.email
+            );
+            lastValue = drawnByCurrentUser[drawnByCurrentUser.length - 1];
+            return current.filter((c) => c !== lastValue);
           });
           break;
         case Tool.rect:
           setRects((current) => {
-            lastValue = current[current.length - 1];
-            return current.slice(0, -1);
+            const drawnByCurrentUser = current.filter(
+              (c) => c.drawnBy === session?.user?.email
+            );
+            lastValue = drawnByCurrentUser[drawnByCurrentUser.length - 1];
+            return current.filter((c) => c !== lastValue);
           });
           break;
         case Tool.circle:
           setCircles((current) => {
-            lastValue = current[current.length - 1];
-            return current.slice(0, -1);
+            const drawnByCurrentUser = current.filter(
+              (c) => c.drawnBy === session?.user?.email
+            );
+            lastValue = drawnByCurrentUser[drawnByCurrentUser.length - 1];
+            return current.filter((c) => c !== lastValue);
           });
           break;
         case Tool.line:
           setStraightLines((current) => {
-            lastValue = current[current.length - 1];
-            return current.slice(0, -1);
+            const drawnByCurrentUser = current.filter(
+              (c) => c.drawnBy === session?.user?.email
+            );
+            lastValue = drawnByCurrentUser[drawnByCurrentUser.length - 1];
+            return current.filter((c) => c !== lastValue);
           });
           break;
         case Tool.text:
@@ -232,10 +294,16 @@ const Canvas: React.FC = () => {
           break;
       }
 
+      if (!lastValue) return;
+
       setToolsRemoved((current) => [
         ...current,
         { tool: lastTool, value: lastValue },
       ]);
+
+      if (wss) {
+        wss.sendUndoEvent(lastValue, lastTool, lastValue.id);
+      }
     }
 
     if (e.ctrlKey && e.key === "y") {
@@ -270,6 +338,14 @@ const Canvas: React.FC = () => {
           break;
         default:
           break;
+      }
+
+      if (wss) {
+        wss.sendRedoEvent(
+          lastRemovedTool.value,
+          lastRemovedTool.tool,
+          lastRemovedTool.value.id
+        );
       }
     }
   };
@@ -320,6 +396,137 @@ const Canvas: React.FC = () => {
 
     ctx.restore();
   }, [scale, offset, drawFreeHand, drawRect, drawCircle, drawLine]);
+
+  // socket connection
+  useEffect(() => {
+    if (session?.user?.email) {
+      const ws = new WebSocketService(
+        `${process.env.NEXT_PUBLIC_WS_URL}`,
+        session.user.email
+      );
+
+      ws.onDrawEvent((message) => {
+        switch (message.type) {
+          case "draw":
+            handleRemoteDrawing(message);
+            break;
+          // Add other cases as needed
+          case "update":
+            handleRemoteUpdate(message);
+            break;
+          case "undo":
+            handleRemoteUndo(message);
+            break;
+          case "redo":
+            handleRemoteRedo(message);
+            break;
+        }
+      });
+
+      setWss(ws);
+    }
+  }, [session]);
+
+  const handleRemoteDrawing = (message: WebSocketMessage) => {
+    switch (message.tool) {
+      case Tool.freeHand:
+        setLines((current) => [...current, message.data as Line]);
+        break;
+      case Tool.rect:
+        setRects((current) => [...current, message.data as Rectangle]);
+        break;
+      case Tool.circle:
+        setCircles((current) => [...current, message.data as Circle]);
+        break;
+      case Tool.line:
+        setStraightLines((current) => [
+          ...current,
+          message.data as StraightLine,
+        ]);
+        break;
+    }
+  };
+
+  const handleRemoteUpdate = (message: WebSocketMessage) => {
+    const { shapeId, tool, data } = message;
+
+    switch (tool) {
+      case Tool.rect:
+        setRects((current) => {
+          const updatedRect = current.find((r) => r.id === shapeId);
+          if (!updatedRect) return current;
+
+          updatedRect.start = data.start;
+          updatedRect.end = data.end;
+
+          return current;
+        });
+        break;
+      case Tool.circle:
+        setCircles((current) => {
+          const updatedCircle = current.find((c) => c.id === shapeId);
+          if (!updatedCircle) return current;
+
+          updatedCircle.start = data.start;
+          updatedCircle.end = data.end;
+
+          return current;
+        });
+        break;
+      case Tool.line:
+        setStraightLines((current) => {
+          const updatedLine = current.find((l) => l.id === shapeId);
+          if (!updatedLine) return current;
+
+          updatedLine.start = data.start;
+          updatedLine.end = data.end;
+
+          return current;
+        });
+        break;
+    }
+  };
+
+  const handleRemoteUndo = (message: WebSocketMessage) => {
+    const { shapeId, tool } = message;
+
+    switch (tool) {
+      case Tool.rect:
+        setRects((current) => current.filter((r) => r.id !== shapeId));
+        break;
+      case Tool.circle:
+        setCircles((current) => current.filter((c) => c.id !== shapeId));
+        break;
+      case Tool.line:
+        setStraightLines((current) => current.filter((l) => l.id !== shapeId));
+        break;
+      case Tool.freeHand:
+        setLines((current) => current.filter((l) => l.id !== shapeId));
+        break;
+    }
+  };
+
+  const handleRemoteRedo = (message: WebSocketMessage) => {
+    const { tool } = message;
+
+    switch (tool) {
+      case Tool.rect:
+        setRects((current) => [...current, message.data as Rectangle]);
+        break;
+      case Tool.circle:
+        setCircles((current) => [...current, message.data as Circle]);
+        break;
+      case Tool.line:
+        setStraightLines((current) => [
+          ...current,
+          message.data as StraightLine,
+        ]);
+        break;
+      case Tool.freeHand:
+        setLines((current) => [...current, message.data as Line]);
+        break;
+    }
+  };
 
   return (
     <div
