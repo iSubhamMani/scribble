@@ -2,6 +2,8 @@ import { Point } from "@/types/Point";
 import { create } from "zustand";
 
 export interface Circle {
+  id: string;
+  drawnBy: string;
   start: Point;
   end: Point;
   color?: string;
@@ -9,12 +11,16 @@ export interface Circle {
 }
 
 export interface Line {
+  id: string;
+  drawnBy: string;
   points: Point[];
   color?: string;
   strokeWidth?: number;
 }
 
 export interface StraightLine {
+  id: string;
+  drawnBy: string;
   start: Point;
   end: Point;
   color?: string;
@@ -22,6 +28,8 @@ export interface StraightLine {
 }
 
 export interface Rectangle {
+  id: string;
+  drawnBy: string;
   start: Point;
   end: Point;
   color?: string;

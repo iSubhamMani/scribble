@@ -18,7 +18,7 @@ export enum Tool {
 
 interface ToolsRemoved {
   tool: Tool;
-  value: object;
+  value: Line | Circle | Rectangle | StraightLine;
 }
 
 interface SelectedShape {
