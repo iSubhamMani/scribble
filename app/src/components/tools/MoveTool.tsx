@@ -5,10 +5,13 @@ import {
   StraightLine,
   useToolsStore,
 } from "@/lib/store/tools";
+import { useUserStore } from "@/lib/store/user";
+import { WebSocketService } from "@/lib/ws/WebSocket";
 import { Point } from "@/types/Point";
 import React, { useState } from "react";
 
 const useMoveTool = (
+  wss: WebSocketService | null,
   canvas: HTMLCanvasElement | null,
   getCanvasCoordinates: (x: number, y: number) => Point | null
 ) => {
@@ -16,6 +19,7 @@ const useMoveTool = (
 
   const { rects, circles, straightLines } = useToolsStore();
   const { selectedShape, setIsDrawing, setSelectedShape } = useCanvasStore();
+  const { user } = useUserStore();
   const boundary = 10;
 
   const onMouseDown = (e: React.MouseEvent) => {
@@ -39,7 +43,7 @@ const useMoveTool = (
             Math.pow(coords.x - rectCentre.x, 2) +
               Math.pow(coords.y - rectCentre.y, 2)
           );
-          if (distanceToCentre < minDist) {
+          if (distanceToCentre < minDist && rect.drawnBy === user?.email) {
             minDist = distanceToCentre;
             closestFigure = { data: rect, type: Tool.rect };
           }
@@ -67,7 +71,7 @@ const useMoveTool = (
           const distanceToCentre = Math.sqrt(
             Math.pow(coords.x - center.x, 2) + Math.pow(coords.y - center.y, 2)
           );
-          if (distanceToCentre < minDist) {
+          if (distanceToCentre < minDist && circle.drawnBy === user?.email) {
             minDist = distanceToCentre;
             closestFigure = { data: circle, type: Tool.circle };
           }
@@ -92,14 +96,17 @@ const useMoveTool = (
             Math.pow(coords.x - straightLine.start.x, 2) +
               Math.pow(coords.y - straightLine.start.y, 2)
           );
-          if (distanceToCentre < minDist) {
+          if (
+            distanceToCentre < minDist &&
+            straightLine.drawnBy === user?.email
+          ) {
             minDist = distanceToCentre;
             closestFigure = { data: straightLine, type: Tool.line };
           }
         }
       }
 
-      if (closestFigure) {
+      if (closestFigure && closestFigure.data.drawnBy === user?.email) {
         setIsDrawing(true);
         setMouseDownCoords(coords);
         setSelectedShape(closestFigure);
@@ -157,6 +164,15 @@ const useMoveTool = (
   };
 
   const onMouseUp = () => {
+    // send update
+    if (wss && selectedShape && selectedShape.data.drawnBy === user?.email) {
+      wss.sendUpdateEvent(
+        selectedShape.type,
+        selectedShape.data,
+        selectedShape.data.id
+      );
+    }
+
     setMouseDownCoords(null); // Clear state
     setSelectedShape(null);
   };

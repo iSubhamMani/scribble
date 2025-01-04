@@ -3,6 +3,8 @@
 import { Tool, useCanvasStore } from "@/lib/store/canvas";
 import { useToolsStore } from "@/lib/store/tools";
 import { Point } from "@/types/Point";
+import { v4 as uuidv4 } from "uuid";
+import { useUserStore } from "@/lib/store/user";
 
 const useRectangle = (
   canvas: HTMLCanvasElement | null,
@@ -10,6 +12,7 @@ const useRectangle = (
 ) => {
   const { rects, setRects } = useToolsStore();
   const { setIsDrawing, scale, setToolsUsed } = useCanvasStore();
+  const { user } = useUserStore();
 
   const onMouseDown = (e: React.MouseEvent) => {
     const coords = getCanvasCoordinates(e.clientX, e.clientY);
@@ -18,6 +21,8 @@ const useRectangle = (
       setRects((current) => [
         ...current,
         {
+          id: uuidv4(),
+          drawnBy: user?.email || "guest-" + Math.random(),
           start: coords,
           end: coords,
           color: "white",
