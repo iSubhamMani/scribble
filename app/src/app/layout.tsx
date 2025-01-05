@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Rubik } from "next/font/google";
 import "./globals.css";
 import ProviderWrapper from "./Provider";
+import { Toaster } from "react-hot-toast";
 
 const rubik = Rubik({
   subsets: ["latin"],
@@ -22,7 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <ProviderWrapper>
-        <body className={`${rubik.className} antialiased`}>{children}</body>
+        <body className={`${rubik.className} antialiased`}>
+          <Toaster />
+          {children}
+        </body>
       </ProviderWrapper>
     </html>
   );

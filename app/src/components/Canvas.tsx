@@ -19,6 +19,7 @@ import { ForwardIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { WebSocketMessage, WebSocketService } from "@/lib/ws/WebSocket";
 import { useUserStore } from "@/lib/store/user";
+import toast from "react-hot-toast";
 
 const Canvas: React.FC = () => {
   const { data: session } = useSession();
@@ -404,6 +405,12 @@ const Canvas: React.FC = () => {
         `${process.env.NEXT_PUBLIC_WS_URL}`,
         session.user.email
       );
+
+      if (ws)
+        toast.success("Connected to the server", {
+          position: "bottom-right",
+          duration: 2500,
+        });
 
       ws.onDrawEvent((message) => {
         switch (message.type) {
