@@ -8,7 +8,7 @@ const LoginButton = () => {
   return (
     <div className="fade-pullup-delayed-2">
       <ShinyButton
-        onClick={() => signIn("google")}
+        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
         className="text-black rounded-full font-bold px-8 border border-primary "
       >
         <span className="flex items-center gap-2">
