@@ -1,7 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Account, Session, User } from "next-auth";
-import { addDoc, collection, doc, getDoc } from "firebase/firestore";
+import { addDoc, collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 
 export const authOptions = {
@@ -43,10 +43,13 @@ export const authOptions = {
       return session;
     },
     async signIn({ user }: { user: User }) {
-      const userRef = doc(db, "users/" + user.email);
-      const existingUser = await getDoc(userRef);
+      const q = query(
+        collection(db, "users"),
+        where("email", "==", user.email)
+      );
+      const existingUser = await getDocs(q);
 
-      if (!existingUser.exists()) {
+      if (existingUser.empty) {
         const email = user.email ?? "";
         const name = user.name ?? "";
         const image = user.image ?? "";
