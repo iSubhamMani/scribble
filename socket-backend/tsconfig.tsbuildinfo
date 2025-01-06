@@ -1,1 +1,1 @@
-{"root":["./src/index.ts"],"version":"5.7.2"}
+{"root":["./src/index.ts","./src/models/Client.ts","./src/models/ClientEventMessage.ts","./src/models/DrawEventMessage.ts"],"version":"5.7.2"}
