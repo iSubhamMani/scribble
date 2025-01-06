@@ -2,27 +2,53 @@
 
 import { Tool } from "../store/canvas";
 
-export type WebSocketMessage = {
-  type: "draw" | "clear" | "undo" | "redo" | "update";
+export type DrawEventMessage = {
+  event: "draw" | "clear" | "undo" | "redo" | "update";
   tool: Tool;
   data: any;
   userId: string;
+  roomId: string;
   shapeId: string;
+};
+
+export type ClientEventMessage = {
+  roomId: string;
+  userId: string;
+};
+
+export type ServerEventMessage = {
+  type: "client_event" | "draw_event";
+  data: any;
+};
+
+export type ClientSocketMessage = {
+  type: "join" | "draw";
+  data: DrawEventMessage | ClientEventMessage;
 };
 
 export class WebSocketService {
   private ws: WebSocket;
   private userId: string;
+  private roomId: string;
 
-  constructor(url: string, userId: string) {
+  constructor(url: string, userId: string, roomId: string) {
     this.ws = this.connect(url);
     this.userId = userId;
+    this.roomId = roomId;
   }
 
   private connect(url: string): WebSocket {
     const ws = new WebSocket(url);
     ws.onopen = () => {
-      console.log("Connected to WebSocket server");
+      const joinMsg: ClientSocketMessage = {
+        type: "join",
+        data: {
+          userId: this.userId,
+          roomId: this.roomId,
+        },
+      };
+
+      ws.send(JSON.stringify(joinMsg));
     };
 
     ws.onclose = () => {
@@ -32,65 +58,98 @@ export class WebSocketService {
     return ws;
   }
 
-  sendDrawEvent(tool: Tool, data: any, shapeId: string) {
+  sendDrawEvent(tool: Tool, data: any, shapeId: string, roomId: string) {
     if (this.ws.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
+      const drawData: DrawEventMessage = {
+        event: "draw",
+        tool,
+        data,
+        userId: this.userId,
+        roomId,
+        shapeId,
+      };
+
+      const msg: ClientSocketMessage = {
         type: "draw",
-        tool,
-        data,
-        userId: this.userId,
-        shapeId,
+        data: drawData,
       };
-      this.ws.send(JSON.stringify(message));
+
+      this.ws.send(JSON.stringify(msg));
     }
   }
 
-  sendUpdateEvent(tool: Tool, data: any, shapeId: string) {
+  sendUpdateEvent(tool: Tool, data: any, shapeId: string, roomId: string) {
     if (this.ws.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
-        type: "update",
+      const drawData: DrawEventMessage = {
+        event: "update",
         tool,
         data,
         userId: this.userId,
+        roomId,
         shapeId,
       };
-      this.ws.send(JSON.stringify(message));
+
+      const msg: ClientSocketMessage = {
+        type: "draw",
+        data: drawData,
+      };
+
+      this.ws.send(JSON.stringify(msg));
     }
   }
 
-  sendUndoEvent(data: any, tool: Tool, shapeId: string) {
+  sendUndoEvent(data: any, tool: Tool, shapeId: string, roomId: string) {
     if (this.ws.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
-        type: "undo",
+      const drawData: DrawEventMessage = {
+        event: "undo",
         tool,
         data,
         userId: this.userId,
+        roomId,
         shapeId,
       };
-      this.ws.send(JSON.stringify(message));
+
+      const msg: ClientSocketMessage = {
+        type: "draw",
+        data: drawData,
+      };
+
+      this.ws.send(JSON.stringify(msg));
     }
   }
 
-  sendRedoEvent(data: any, tool: Tool, shapeId: string) {
+  sendRedoEvent(data: any, tool: Tool, shapeId: string, roomId: string) {
     if (this.ws.readyState === WebSocket.OPEN) {
-      const message: WebSocketMessage = {
-        type: "redo",
+      const drawData: DrawEventMessage = {
+        event: "redo",
         tool,
         data,
         userId: this.userId,
+        roomId,
         shapeId,
       };
-      this.ws.send(JSON.stringify(message));
+
+      const msg: ClientSocketMessage = {
+        type: "draw",
+        data: drawData,
+      };
+
+      this.ws.send(JSON.stringify(msg));
     }
   }
 
-  onDrawEvent(callback: (message: WebSocketMessage) => void) {
+  onServerEvent(callback: (message: ServerEventMessage) => void) {
     this.ws.onmessage = (event) => {
-      const message: WebSocketMessage = JSON.parse(
-        event.data
-      ) as WebSocketMessage;
-      if (message.userId != this.userId) {
+      const message = JSON.parse(event.data) as ServerEventMessage;
+      // check if message is for client events or draw events
+
+      if (message.type === "client_event") {
+        // handle client events
         callback(message);
+      } else if (message.type === "draw_event") {
+        if (message.data.userId != this.userId) {
+          callback(message);
+        }
       }
     };
   }
