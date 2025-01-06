@@ -17,11 +17,15 @@ import {
 import useMoveTool from "./tools/MoveTool";
 import { ForwardIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { WebSocketMessage, WebSocketService } from "@/lib/ws/WebSocket";
+import { DrawEventMessage, WebSocketService } from "@/lib/ws/WebSocket";
 import { useUserStore } from "@/lib/store/user";
 import toast from "react-hot-toast";
 
-const Canvas: React.FC = () => {
+const Canvas: React.FC<{ roomId: string }> = ({
+  roomId,
+}: {
+  roomId: string;
+}) => {
   const { data: session } = useSession();
   const [wss, setWss] = useState<WebSocketService | null>(null);
   const { setUser } = useUserStore();
@@ -84,7 +88,7 @@ const Canvas: React.FC = () => {
     onMouseMove: onMouseMoveTool,
     onMouseDown: onMouseDownMove,
     onMouseUp: onMouseUpMove,
-  } = useMoveTool(wss, canvasRef.current, getCanvasCoordinates);
+  } = useMoveTool(wss, getCanvasCoordinates, roomId);
 
   const {
     draw: drawFreeHand,
@@ -205,7 +209,7 @@ const Canvas: React.FC = () => {
       }
 
       if (data) {
-        wss.sendDrawEvent(tool, data, data.id);
+        wss.sendDrawEvent(tool, data, data.id, roomId);
       }
     }
 
@@ -303,7 +307,7 @@ const Canvas: React.FC = () => {
       ]);
 
       if (wss) {
-        wss.sendUndoEvent(lastValue, lastTool, lastValue.id);
+        wss.sendUndoEvent(lastValue, lastTool, lastValue.id, roomId);
       }
     }
 
@@ -345,7 +349,8 @@ const Canvas: React.FC = () => {
         wss.sendRedoEvent(
           lastRemovedTool.value,
           lastRemovedTool.tool,
-          lastRemovedTool.value.id
+          lastRemovedTool.value.id,
+          roomId
         );
       }
     }
@@ -400,41 +405,57 @@ const Canvas: React.FC = () => {
 
   // socket connection
   useEffect(() => {
+    if (wss) return;
     if (session?.user?.email) {
       const ws = new WebSocketService(
         `${process.env.NEXT_PUBLIC_WS_URL}`,
-        session.user.email
+        session.user.email,
+        roomId
       );
 
-      if (ws)
-        toast.success("Connected to the server", {
-          position: "bottom-right",
-          duration: 2500,
-        });
+      ws.onServerEvent((message) => {
+        if (message.type === "client_event") {
+          const { event, data } = message.data;
 
-      ws.onDrawEvent((message) => {
-        switch (message.type) {
-          case "draw":
-            handleRemoteDrawing(message);
-            break;
-          // Add other cases as needed
-          case "update":
-            handleRemoteUpdate(message);
-            break;
-          case "undo":
-            handleRemoteUndo(message);
-            break;
-          case "redo":
-            handleRemoteRedo(message);
-            break;
+          switch (event) {
+            case "error":
+              toast.error(data, {
+                duration: 2500,
+                position: "bottom-right",
+              });
+              break;
+            case "success":
+              toast.success(data, {
+                duration: 2500,
+                position: "bottom-right",
+              });
+              break;
+          }
+        } else if (message.type === "draw_event") {
+          const drawEvent = message.data as DrawEventMessage;
+
+          switch (drawEvent.event) {
+            case "draw":
+              handleRemoteDrawing(drawEvent);
+              break;
+            case "update":
+              handleRemoteUpdate(drawEvent);
+              break;
+            case "undo":
+              handleRemoteUndo(drawEvent);
+              break;
+            case "redo":
+              handleRemoteRedo(drawEvent);
+              break;
+          }
         }
       });
 
       setWss(ws);
     }
-  }, [session]);
+  }, [session, wss]);
 
-  const handleRemoteDrawing = (message: WebSocketMessage) => {
+  const handleRemoteDrawing = (message: DrawEventMessage) => {
     switch (message.tool) {
       case Tool.freeHand:
         setLines((current) => [...current, message.data as Line]);
@@ -454,7 +475,7 @@ const Canvas: React.FC = () => {
     }
   };
 
-  const handleRemoteUpdate = (message: WebSocketMessage) => {
+  const handleRemoteUpdate = (message: DrawEventMessage) => {
     const { shapeId, tool, data } = message;
 
     switch (tool) {
@@ -494,7 +515,7 @@ const Canvas: React.FC = () => {
     }
   };
 
-  const handleRemoteUndo = (message: WebSocketMessage) => {
+  const handleRemoteUndo = (message: DrawEventMessage) => {
     const { shapeId, tool } = message;
 
     switch (tool) {
@@ -513,7 +534,7 @@ const Canvas: React.FC = () => {
     }
   };
 
-  const handleRemoteRedo = (message: WebSocketMessage) => {
+  const handleRemoteRedo = (message: DrawEventMessage) => {
     const { tool } = message;
 
     switch (tool) {
