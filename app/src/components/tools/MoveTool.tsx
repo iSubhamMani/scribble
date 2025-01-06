@@ -12,8 +12,8 @@ import React, { useState } from "react";
 
 const useMoveTool = (
   wss: WebSocketService | null,
-  canvas: HTMLCanvasElement | null,
-  getCanvasCoordinates: (x: number, y: number) => Point | null
+  getCanvasCoordinates: (x: number, y: number) => Point | null,
+  roomId: string
 ) => {
   const [mouseDownCoords, setMouseDownCoords] = useState<Point | null>(null);
 
@@ -169,7 +169,8 @@ const useMoveTool = (
       wss.sendUpdateEvent(
         selectedShape.type,
         selectedShape.data,
-        selectedShape.data.id
+        selectedShape.data.id,
+        roomId
       );
     }
 
