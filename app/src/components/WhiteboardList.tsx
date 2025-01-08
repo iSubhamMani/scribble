@@ -58,6 +58,7 @@ const WhiteboardList = () => {
             <TableHead className="w-[150px] text-center">Visibility</TableHead>
             <TableHead className="w-[150px] text-center">Created</TableHead>
             <TableHead className="w-[150px] text-center">Edited</TableHead>
+            <TableHead className="w-[50px] text-center"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

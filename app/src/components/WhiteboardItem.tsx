@@ -1,7 +1,7 @@
 "use client";
 
 import { Whiteboard } from "@/models/Whiteboard";
-import { GlobeIcon } from "lucide-react";
+import { EllipsisVertical, GlobeIcon } from "lucide-react";
 import React from "react";
 import {
   Tooltip,
@@ -61,6 +61,14 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
       </TableCell>
       <TableCell className="text-center">
         <span>{formatDate(whiteboard.updatedAt)}</span>
+      </TableCell>
+      <TableCell className="text-center">
+        <EllipsisVertical
+          onClick={(e) => {
+            e.stopPropagation();
+          }}
+          className="size-8 p-2 text-secondary-foreground hover:bg-secondary rounded-full"
+        />
       </TableCell>
     </TableRow>
   );
