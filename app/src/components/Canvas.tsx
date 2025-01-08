@@ -19,7 +19,7 @@ import { ForwardIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { DrawEventMessage, WebSocketService } from "@/lib/ws/WebSocket";
 import { useUserStore } from "@/lib/store/user";
-import toast from "react-hot-toast";
+import { errorToast, successToast } from "@/utils/Toast";
 
 const Canvas: React.FC<{ roomId: string }> = ({
   roomId,
@@ -419,16 +419,10 @@ const Canvas: React.FC<{ roomId: string }> = ({
 
           switch (event) {
             case "error":
-              toast.error(data, {
-                duration: 2500,
-                position: "bottom-right",
-              });
+              errorToast(data);
               break;
             case "success":
-              toast.success(data, {
-                duration: 2500,
-                position: "bottom-right",
-              });
+              successToast(data);
               break;
           }
         } else if (message.type === "draw_event") {
