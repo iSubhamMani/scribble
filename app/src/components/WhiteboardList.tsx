@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import Image from "next/image";
 
 const WhiteboardList = () => {
   const {
@@ -24,10 +25,12 @@ const WhiteboardList = () => {
     queryKey: ["all-whiteboards"],
     queryFn: async () => {
       const res = await axios.get("/api/whiteboard/all");
-      return res.data;
+      return res.data.data;
     },
     staleTime: Infinity,
   });
+
+  console.log(whiteboards);
 
   if (isFetching) {
     return (
@@ -48,9 +51,30 @@ const WhiteboardList = () => {
     );
   }
 
+  if (isSuccess && whiteboards.length === 0) {
+    return (
+      <div className="mt-16 flex justify-center">
+        <div>
+          <div className="flex justify-center">
+            <Image
+              className="opacity-80"
+              src={"/create-whiteboard.svg"}
+              width={200}
+              height={200}
+              alt="Create"
+            />
+          </div>
+          <p className="mt-2 text-base text-secondary-foreground">
+            Start Scribbling by creating a new Whiteboard
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     isSuccess &&
-    whiteboards && (
+    whiteboards.length > 0 && (
       <Table className="mt-6">
         <TableHeader>
           <TableRow>
@@ -62,7 +86,7 @@ const WhiteboardList = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {whiteboards.data.map((whiteboard: Whiteboard) => (
+          {whiteboards.map((whiteboard: Whiteboard) => (
             <WhiteboardItem key={whiteboard.id} {...whiteboard} />
           ))}
         </TableBody>
