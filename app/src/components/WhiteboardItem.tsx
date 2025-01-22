@@ -30,7 +30,7 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
           <Tooltip>
             <TooltipTrigger>
               <span>
-                {whiteboard.isPublic ? (
+                {whiteboard.shareOption === "anyone" ? (
                   <GlobeIcon className="size-5 text-accent" />
                 ) : (
                   <svg
@@ -51,7 +51,9 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
               </span>
             </TooltipTrigger>
             <TooltipContent>
-              <p>{whiteboard.isPublic ? "Public" : "Private"}</p>
+              <p>
+                {whiteboard.shareOption === "anyone" ? "Public" : "Private"}
+              </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

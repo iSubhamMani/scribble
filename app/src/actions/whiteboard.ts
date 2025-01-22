@@ -22,8 +22,9 @@ export async function createNewWhiteboard(title: string) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       admin: session.user.email!,
-      isPublic: false,
-      accessList: [],
+      shareOption: "restricted",
+      privateAccessList: [],
+      publicEditAccess: "none",
     };
 
     const docRef = doc(db, "whiteboards", whiteboardId);
