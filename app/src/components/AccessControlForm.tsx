@@ -17,19 +17,22 @@ import {
   PublicEditAccess,
   ShareOption,
 } from "@/models/Whiteboard";
+import toast from "react-hot-toast";
+import { LoaderCircle } from "lucide-react";
 
-type FormData = {
+export type ACLFormData = {
   shareOption: ShareOption;
   publicEditAccess: PublicEditAccess;
   privateAccessList: PrivateAccessListUser[];
 };
 
-const AccessControlForm = () => {
+const AccessControlForm = ({ id }: { id: string }) => {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState<string>("");
   const [users, setUsers] = useState<UserType[]>([]);
+  const [submitting, setSubmitting] = useState<boolean>(false);
 
-  const [formData, setFormData] = useState<FormData>({
+  const [formData, setFormData] = useState<ACLFormData>({
     shareOption: "restricted",
     publicEditAccess: "none",
     privateAccessList: [],
@@ -70,12 +73,27 @@ const AccessControlForm = () => {
     }
   }, [formData.shareOption]);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log(formData);
+    const fd = new FormData();
+    fd.append("id", id);
+    fd.append("aclData", JSON.stringify(formData));
 
-    closeRef.current?.click();
+    try {
+      setSubmitting(true);
+      const res = await axios.put("/api/whiteboard", fd);
+
+      if (res.data.success) {
+        toast.success("Access Control Updated");
+        closeRef.current?.click();
+      }
+    } catch (error) {
+      toast.error("Failed to update access control");
+      console.log(error);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -160,7 +178,7 @@ const AccessControlForm = () => {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 id="title"
-                placeholder="Search users.."
+                placeholder="Search users by email.."
               />
               {users.length !== 0 && (
                 <Card className="backdrop-blur-xl bg-card/45 shadow-xl absolute w-full z-50 top-full mt-2">
@@ -269,12 +287,16 @@ const AccessControlForm = () => {
       </div>
       <DialogFooter className="sm:justify-end">
         <DialogClose ref={closeRef} asChild>
-          <Button type="button" variant="secondary">
+          <Button disabled={submitting} type="button" variant="secondary">
             Close
           </Button>
         </DialogClose>
-        <Button type="submit" variant="default">
-          Save
+        <Button disabled={submitting} type="submit" variant="default">
+          {submitting ? (
+            <LoaderCircle className="text-primary-foreground animate-spin size-4" />
+          ) : (
+            "Save"
+          )}
         </Button>
       </DialogFooter>
     </form>

@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import AccessControlForm from "./AccessControlForm";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-const ShareButton = () => {
+const ShareButton = ({ whiteboardId }: { whiteboardId: string }) => {
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -19,7 +19,7 @@ const ShareButton = () => {
         <DialogHeader>
           <DialogTitle className="text-lg">Share With</DialogTitle>
         </DialogHeader>
-        <AccessControlForm />
+        <AccessControlForm id={whiteboardId} />
       </DialogContent>
     </Dialog>
   );
