@@ -37,7 +37,7 @@ const handleRoomJoin = (room: string, userId: string, ws: WebSocket) => {
     rooms.set(room, [{ userId, ws }]);
     const msg = new ClientEventMessage({
       event: "success",
-      data: "Connected to the room",
+      data: "Connected to the server",
     });
     ws.send(JSON.stringify(msg));
   }
