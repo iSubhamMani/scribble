@@ -14,10 +14,18 @@ import useSocket from "@/hooks/useSocket";
 import useMouseEvents from "@/hooks/useMouseEvents";
 import ShareButton from "./ShareButton";
 
-const Canvas: React.FC<{ roomId: string }> = ({
+const Canvas: React.FC<{
+  roomId: string;
+  editAccess: boolean;
+  admin: boolean;
+}> = ({
   roomId,
+  editAccess,
+  admin,
 }: {
   roomId: string;
+  editAccess: boolean;
+  admin: boolean;
 }) => {
   const { data: session } = useSession();
   const [wss, setWss] = useState<WebSocketService | null>(null);
@@ -58,7 +66,8 @@ const Canvas: React.FC<{ roomId: string }> = ({
     wss,
     getCanvasCoordinates,
     roomId,
-    setOffset
+    setOffset,
+    editAccess
   );
 
   useEffect(() => {
@@ -133,7 +142,7 @@ const Canvas: React.FC<{ roomId: string }> = ({
       <div className="absolute top-4 left-4 bg-zinc-800 p-2 rounded shadow text-primary-foreground text-sm">
         Zoom: {(scale * 100).toFixed(0)}%
       </div>
-      <ShareButton />
+      {admin && <ShareButton whiteboardId={roomId} />}
     </div>
   );
 };
