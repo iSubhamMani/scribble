@@ -24,7 +24,8 @@ const useMouseEvents = (
   wss: WebSocketService | null,
   getCanvasCoordinates: (clientX: number, clientY: number) => Point | null,
   roomId: string,
-  setOffset: React.Dispatch<React.SetStateAction<Point>>
+  setOffset: React.Dispatch<React.SetStateAction<Point>>,
+  editAccess: boolean
 ) => {
   const {
     circles,
@@ -79,6 +80,7 @@ const useMouseEvents = (
       setLastPosition({ x: e.clientX, y: e.clientY });
     } else {
       // Drawing
+      if (!editAccess) return;
       switch (tool) {
         case Tool.move:
           onMouseDownMove(e);
@@ -118,6 +120,7 @@ const useMouseEvents = (
       setLastPosition({ x: e.clientX, y: e.clientY });
     } else if (isDrawing) {
       // Drawing logic
+      if (!editAccess) return;
       switch (tool) {
         case Tool.move:
           onMouseMoveTool(e);
@@ -141,6 +144,7 @@ const useMouseEvents = (
   };
 
   const handleMouseUp = () => {
+    if (!editAccess) return;
     if (isDrawing && wss) {
       // Send the last drawn shape to other clients
       let data;
@@ -171,7 +175,7 @@ const useMouseEvents = (
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     // shortcuts
-
+    if (!editAccess) return;
     if (e.key === "v") {
       setTool(Tool.move);
     }
