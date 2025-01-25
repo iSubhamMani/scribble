@@ -13,19 +13,23 @@ import { useUserStore } from "@/lib/store/user";
 import useSocket from "@/hooks/useSocket";
 import useMouseEvents from "@/hooks/useMouseEvents";
 import ShareButton from "./ShareButton";
+import { ACLData } from "@/models/ACLData";
 
 const Canvas: React.FC<{
   roomId: string;
   editAccess: boolean;
   admin: boolean;
+  aclData?: ACLData;
 }> = ({
   roomId,
   editAccess,
   admin,
+  aclData,
 }: {
   roomId: string;
   editAccess: boolean;
   admin: boolean;
+  aclData?: ACLData;
 }) => {
   const { data: session } = useSession();
   const [wss, setWss] = useState<WebSocketService | null>(null);
@@ -142,7 +146,7 @@ const Canvas: React.FC<{
       <div className="absolute top-4 left-4 bg-zinc-800 p-2 rounded shadow text-primary-foreground text-sm">
         Zoom: {(scale * 100).toFixed(0)}%
       </div>
-      {admin && <ShareButton whiteboardId={roomId} />}
+      {admin && <ShareButton defaultACLData={aclData} whiteboardId={roomId} />}
     </div>
   );
 };

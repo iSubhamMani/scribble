@@ -2,7 +2,7 @@
 
 import { Label } from "./ui/label";
 import { Input } from "./ui/input";
-import { useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import axios from "axios";
 import { UserType } from "@/models/user";
@@ -26,21 +26,29 @@ export type ACLFormData = {
   privateAccessList: PrivateAccessListUser[];
 };
 
-const AccessControlForm = ({ id }: { id: string }) => {
+const AccessControlForm = ({
+  id,
+  formData,
+  setFormData,
+}: {
+  id: string;
+  formData: ACLFormData;
+  setFormData: Dispatch<SetStateAction<ACLFormData>>;
+}) => {
   const closeRef = useRef<HTMLButtonElement>(null);
   const [query, setQuery] = useState<string>("");
-  const [users, setUsers] = useState<UserType[]>([]);
+  const [searchedUsers, setSearchedUsers] = useState<UserType[]>([]);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
-  const [formData, setFormData] = useState<ACLFormData>({
-    shareOption: "restricted",
-    publicEditAccess: "none",
-    privateAccessList: [],
+  const [formState, setFormState] = useState<ACLFormData>({
+    shareOption: formData?.shareOption || "restricted",
+    publicEditAccess: formData?.publicEditAccess || "none",
+    privateAccessList: formData?.privateAccessList || [],
   });
 
   useEffect(() => {
     if (!query || query.trim() === "") {
-      setUsers([]);
+      setSearchedUsers([]);
       return;
     }
     async function searchUsers() {
@@ -48,11 +56,11 @@ const AccessControlForm = ({ id }: { id: string }) => {
       try {
         const res = await axios.get("/api/user/all?q=" + query);
         const filteredUsers = res.data.data.filter((u: UserType) => {
-          return !formData.privateAccessList.find(
+          return !formState.privateAccessList.find(
             (al) => al.user.email === u.email
           );
         });
-        setUsers(filteredUsers);
+        setSearchedUsers(filteredUsers);
       } catch (error) {
         console.log(error);
       }
@@ -60,25 +68,12 @@ const AccessControlForm = ({ id }: { id: string }) => {
     searchUsers();
   }, [query]);
 
-  useEffect(() => {
-    if (formData.shareOption === "anyone") {
-      setFormData((f) => ({ ...f, privateAccessList: [] }));
-    }
-
-    if (formData.shareOption === "restricted") {
-      setFormData((f) => ({
-        ...f,
-        publicEditAccess: "none",
-      }));
-    }
-  }, [formData.shareOption]);
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const fd = new FormData();
     fd.append("id", id);
-    fd.append("aclData", JSON.stringify(formData));
+    fd.append("aclData", JSON.stringify(formState));
 
     try {
       setSubmitting(true);
@@ -86,6 +81,7 @@ const AccessControlForm = ({ id }: { id: string }) => {
 
       if (res.data.success) {
         toast.success("Access Control Updated");
+        setFormData(formState);
         closeRef.current?.click();
       }
     } catch (error) {
@@ -102,9 +98,9 @@ const AccessControlForm = ({ id }: { id: string }) => {
         <RadioGroup
           className="space-y-2"
           onValueChange={(value) =>
-            setFormData((f) => ({ ...f, shareOption: value as ShareOption }))
+            setFormState((f) => ({ ...f, shareOption: value as ShareOption }))
           }
-          value={formData.shareOption}
+          value={formState.shareOption}
         >
           <div className="flex items-start space-x-4">
             <RadioGroupItem className="mt-1" value="anyone" id="anyone" />
@@ -137,18 +133,18 @@ const AccessControlForm = ({ id }: { id: string }) => {
             </div>
           </div>
         </RadioGroup>
-        {formData.shareOption === "anyone" && (
+        {formState.shareOption === "anyone" && (
           <div className="mt-2">
             <p className="text-lg font-bold">Edit access</p>
             <RadioGroup
               className="flex space-x-4 items-center mt-4"
               onValueChange={(value) =>
-                setFormData((f) => ({
+                setFormState((f) => ({
                   ...f,
                   publicEditAccess: value as PublicEditAccess,
                 }))
               }
-              defaultValue={formData.publicEditAccess}
+              defaultValue={formState.publicEditAccess}
             >
               <div className="flex items-start space-x-2">
                 <RadioGroupItem value="all" id="all" />
@@ -171,7 +167,7 @@ const AccessControlForm = ({ id }: { id: string }) => {
             </RadioGroup>
           </div>
         )}
-        {formData.shareOption === "restricted" && (
+        {formState.shareOption === "restricted" && (
           <>
             <div className="relative">
               <Input
@@ -180,15 +176,15 @@ const AccessControlForm = ({ id }: { id: string }) => {
                 id="title"
                 placeholder="Search users by email.."
               />
-              {users.length !== 0 && (
+              {searchedUsers.length !== 0 && (
                 <Card className="backdrop-blur-xl bg-card/45 shadow-xl absolute w-full z-50 top-full mt-2">
                   <ScrollArea className="w-full h-[120px]">
-                    {users.map((u) => {
+                    {searchedUsers.map((u) => {
                       return (
                         <div
                           onClick={() => {
                             if (
-                              formData.privateAccessList.find(
+                              formState.privateAccessList.find(
                                 (al) => al.user.email === u.email
                               )
                             )
@@ -197,7 +193,7 @@ const AccessControlForm = ({ id }: { id: string }) => {
                               user: u,
                               editAccess: false,
                             };
-                            setFormData((f) => ({
+                            setFormState((f) => ({
                               ...f,
                               privateAccessList: [...f.privateAccessList, user],
                             }));
@@ -229,13 +225,13 @@ const AccessControlForm = ({ id }: { id: string }) => {
               <h3 className="font-bold text-base text-secondary-foreground">
                 People with access
               </h3>
-              {formData.privateAccessList.length !== 0 && (
+              {formState.privateAccessList.length !== 0 && (
                 <>
                   <p className="text-end font-bold text-secondary-foreground/85 text-sm my-1">
                     Edit Access
                   </p>
                   <ScrollArea className="w-full h-[120px] my-2">
-                    {formData.privateAccessList.map((u) => {
+                    {formState.privateAccessList.map((u) => {
                       return (
                         <div
                           key={u.user.email}
@@ -257,8 +253,9 @@ const AccessControlForm = ({ id }: { id: string }) => {
                               </p>
                             </div>
                             <Checkbox
+                              checked={u.editAccess}
                               onCheckedChange={(e) => {
-                                setFormData((f) => ({
+                                setFormState((f) => ({
                                   ...f,
                                   privateAccessList: f.privateAccessList.map(
                                     (al) => {

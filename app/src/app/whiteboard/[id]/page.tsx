@@ -2,6 +2,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/config";
 import Canvas from "@/components/Canvas";
 import Toolbar from "@/components/Toolbar";
 import { db } from "@/lib/firebase/config";
+import { ACLData } from "@/models/ACLData";
 import { Whiteboard as WhiteboardModel } from "@/models/Whiteboard";
 import { doc, getDoc } from "firebase/firestore";
 import { getServerSession } from "next-auth";
@@ -12,6 +13,7 @@ type AccessResponse = {
   editAccess: boolean;
   admin: boolean;
   success: boolean;
+  aclData?: ACLData;
 };
 
 async function checkAccess(id: string) {
@@ -50,6 +52,11 @@ async function checkAccess(id: string) {
       editAccess: true,
       admin,
       success: true,
+      aclData: {
+        privateAccessList: whiteboard.privateAccessList,
+        publicEditAccess: whiteboard.publicEditAccess,
+        shareOption: whiteboard.shareOption,
+      },
     };
     return res;
   }
@@ -61,6 +68,11 @@ async function checkAccess(id: string) {
       editAccess: whiteboard.publicEditAccess === "all",
       admin,
       success: true,
+      aclData: {
+        privateAccessList: whiteboard.privateAccessList,
+        publicEditAccess: whiteboard.publicEditAccess,
+        shareOption: whiteboard.shareOption,
+      },
     };
     return res;
   }
@@ -76,6 +88,11 @@ async function checkAccess(id: string) {
       editAccess: user[0].editAccess,
       admin,
       success: true,
+      aclData: {
+        privateAccessList: whiteboard.privateAccessList,
+        publicEditAccess: whiteboard.publicEditAccess,
+        shareOption: whiteboard.shareOption,
+      },
     };
     return res;
   }
@@ -108,6 +125,7 @@ const Whiteboard = async ({ params }: { params: Promise<{ id: string }> }) => {
           roomId={id}
           editAccess={access.editAccess}
           admin={access.admin}
+          aclData={access.aclData}
         />
       </div>
     )
