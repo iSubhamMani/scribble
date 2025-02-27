@@ -54,7 +54,7 @@ export async function PUT(req: NextRequest) {
         {
           success: false,
           data: null,
-          message: null,
+          message: "An error occurred",
         },
         { status: 500 }
       );
