@@ -42,7 +42,7 @@ export async function GET() {
         {
           success: false,
           data: null,
-          message: null,
+          message: "An error occurred",
         },
         { status: 500 }
       );
