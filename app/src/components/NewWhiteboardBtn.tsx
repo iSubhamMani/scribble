@@ -16,11 +16,9 @@ import { Label } from "@/components/ui/label";
 import { errorToast, successToast } from "@/utils/Toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { LoaderCircleIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 const NewWhiteboardBtn = () => {
-  const router = useRouter();
   const [title, setTitle] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const q = useQueryClient();
@@ -35,7 +33,6 @@ const NewWhiteboardBtn = () => {
     if (res.success) {
       successToast(res.message as string);
       closeRef.current?.click();
-      router.push(`/whiteboard/${res.data}`);
       q.invalidateQueries({ queryKey: ["all-whiteboards"], exact: true });
     } else {
       errorToast(res.message || "Failed to create whiteboard");
