@@ -39,9 +39,12 @@ import { Input } from "./ui/input";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   deleteWhiteboard,
+  markFavourite,
   renameWhiteboard,
 } from "@/utils/WhiteboardOperations";
 import toast from "react-hot-toast";
+import { isAxiosError } from "axios";
+import { useSession } from "next-auth/react";
 
 type DropdownMenuOperations = "rename" | "delete" | "markFavourite";
 
@@ -54,12 +57,15 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
   const [newWhiteBoardName, setNewWhiteBoardName] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  const router = useRouter();
+  const { data: session } = useSession();
+
   const qc = useQueryClient();
 
   const { mutate: muatateDelete, isPending: deleting } = useMutation({
     mutationFn: async () => await deleteWhiteboard(whiteboard.id),
     onSuccess: () => {
-      toast.success("Whiteboard deleted successfully");
+      toast.success("Whiteboard deleted");
       qc.invalidateQueries({
         queryKey: ["all-whiteboards"],
       });
@@ -67,7 +73,11 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
       setDropDownOperation(null);
     },
     onError: (error) => {
-      toast.error(error || "Error deleting whiteboard");
+      if (isAxiosError(error))
+        toast.error(
+          error.response?.data.message || "Error deleting whiteboard"
+        );
+      else toast.error(error.message || "Error deleting whiteboard");
     },
   });
 
@@ -75,7 +85,7 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
     mutationFn: async () =>
       await renameWhiteboard(whiteboard.id, newWhiteBoardName),
     onSuccess: () => {
-      toast.success("Whiteboard renamed successfully");
+      toast.success("Whiteboard renamed");
       qc.invalidateQueries({
         queryKey: ["all-whiteboards"],
       });
@@ -83,9 +93,30 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
       setDropDownOperation(null);
     },
     onError: (error) => {
-      toast.error(error || "Error renaming whiteboard");
+      if (isAxiosError(error))
+        toast.error(
+          error.response?.data.message || "Error renaming whiteboard"
+        );
+      else toast.error(error.message || "Error renaming whiteboard");
     },
   });
+
+  const { mutate: mutateMarkFavourite, isPending: markingFavourite } =
+    useMutation({
+      mutationFn: async () => await markFavourite(whiteboard.id),
+      onSuccess: () => {
+        toast.success("Whiteboard marked favourite");
+        setDialogOpen(false);
+        setDropDownOperation(null);
+      },
+      onError: (error) => {
+        if (isAxiosError(error))
+          toast.error(
+            error.response?.data.message || "Error marking favourite"
+          );
+        else toast.error(error.message || "Error marking favourite");
+      },
+    });
 
   useEffect(() => {
     if (dropDownOperation === null) return;
@@ -119,12 +150,13 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
         muatateDelete();
         break;
       case "markFavourite":
-        console.log("Mark Favourite operation");
+        mutateMarkFavourite();
         break;
     }
   };
 
-  const router = useRouter();
+  const isAdmin = session?.user?.email === whiteboard.admin;
+
   return (
     <TableRow
       onClick={() => router.push(`/whiteboard/${whiteboard.id}`)}
@@ -174,67 +206,69 @@ const WhiteboardItem = (whiteboard: Whiteboard) => {
       <TableCell className="text-center">
         <span>{formatDate(whiteboard.updatedAt)}</span>
       </TableCell>
-      <TableCell className="text-center">
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DropdownMenu>
-            <DropdownMenuTrigger>
-              <EllipsisVertical
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-                className="size-8 p-2 text-secondary-foreground hover:bg-secondary rounded-full"
-              />
-            </DropdownMenuTrigger>
-            <DialogTrigger asChild>
-              <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
-                <DropdownMenuItem
-                  onClick={() => setDropDownOperation("rename")}
-                >
-                  <PencilIcon className="size-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setDropDownOperation("delete")}
-                >
-                  <TrashIcon className="size-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => setDropDownOperation("markFavourite")}
-                >
-                  <StarIcon className="size-4 mr-2" />
-                  Mark Favourite
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DialogTrigger>
-          </DropdownMenu>
-          <DialogContent onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>{dropdownDialogTitle}</DialogTitle>
-              <DialogDescription>
-                {dropdownDialogDescription}
-                {dropDownOperation === "rename" && (
-                  <Input
-                    className="mt-4"
-                    placeholder="Enter new name"
-                    value={newWhiteBoardName}
-                    onChange={(e) => setNewWhiteBoardName(e.target.value)}
-                  />
-                )}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button onClick={handleConfirmOperation} type="submit">
-                {deleting || renaming ? (
-                  <LoaderCircle className="animate-spin size-5 text-secondary-foreground" />
-                ) : (
-                  "Confirm"
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </TableCell>
+      {isAdmin && (
+        <TableCell className="text-center">
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DropdownMenu>
+              <DropdownMenuTrigger>
+                <EllipsisVertical
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="size-8 p-2 text-secondary-foreground hover:bg-secondary rounded-full"
+                />
+              </DropdownMenuTrigger>
+              <DialogTrigger asChild>
+                <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
+                  <DropdownMenuItem
+                    onClick={() => setDropDownOperation("rename")}
+                  >
+                    <PencilIcon className="size-4 mr-2" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDropDownOperation("delete")}
+                  >
+                    <TrashIcon className="size-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setDropDownOperation("markFavourite")}
+                  >
+                    <StarIcon className="size-4 mr-2" />
+                    Mark Favourite
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DialogTrigger>
+            </DropdownMenu>
+            <DialogContent onClick={(e) => e.stopPropagation()}>
+              <DialogHeader>
+                <DialogTitle>{dropdownDialogTitle}</DialogTitle>
+                <DialogDescription>
+                  {dropdownDialogDescription}
+                  {dropDownOperation === "rename" && (
+                    <Input
+                      className="mt-4"
+                      placeholder="Enter new name"
+                      value={newWhiteBoardName}
+                      onChange={(e) => setNewWhiteBoardName(e.target.value)}
+                    />
+                  )}
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={handleConfirmOperation} type="submit">
+                  {deleting || renaming || markingFavourite ? (
+                    <LoaderCircle className="animate-spin size-5 text-secondary-foreground" />
+                  ) : (
+                    "Confirm"
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </TableCell>
+      )}
     </TableRow>
   );
 };

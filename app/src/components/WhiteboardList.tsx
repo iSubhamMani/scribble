@@ -28,7 +28,7 @@ const WhiteboardList = () => {
       const res = await axios.get("/api/whiteboard/all");
       return res.data.data;
     },
-    staleTime: Infinity,
+    staleTime: 1000 * 60 * 5,
   });
 
   if (isLoading) {
@@ -88,7 +88,7 @@ const WhiteboardList = () => {
               </TableHead>
               <TableHead className="w-[150px] text-center">Created</TableHead>
               <TableHead className="w-[150px] text-center">Edited</TableHead>
-              <TableHead className="w-[50px] text-center"></TableHead>
+              <TableHead className="w-[30px] text-center"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
