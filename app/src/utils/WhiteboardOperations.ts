@@ -14,3 +14,8 @@ export const renameWhiteboard = async (
   });
   return res.data.data;
 };
+
+export const markFavourite = async (whiteboardId: string) => {
+  const res = await axios.post(`/api/whiteboard/favourite/${whiteboardId}`);
+  return res.data.data;
+};
