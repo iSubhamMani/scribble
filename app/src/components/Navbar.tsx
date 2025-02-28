@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, Star, Users } from "lucide-react";
+import { LayoutDashboard, LogOut, Star, Users } from "lucide-react";
 import { signOut } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -19,6 +19,12 @@ const Navbar = () => {
       <div className="flex-1 my-6">
         <section>
           <ul>
+            <Link href={"/dashboard"}>
+              <li className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md hover:bg-secondary/70">
+                <LayoutDashboard className="size-4 text-secondary-foreground" />
+                Dashboard
+              </li>
+            </Link>
             <Link href={"/shared"}>
               <li className="cursor-pointer flex items-center gap-2 px-4 py-2 rounded-md hover:bg-secondary/70">
                 <Users className="size-4 text-secondary-foreground" />
